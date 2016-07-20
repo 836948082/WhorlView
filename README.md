@@ -4,7 +4,7 @@
 
 ## 预览
 
-![https://raw.githubusercontent.com/Kyson/WhorlView/master/art/whorl_progress_showcase.gif](https://raw.githubusercontent.com/Kyson/WhorlView/master/art/whorl_progress_showcase.gif)
+![](https://github.com/836948082/WhorlView/blob/master/image/whorl_progress_image.gif)
 
 ## 使用
 
