@@ -1,5 +1,6 @@
 package com.runtai.whorlview;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -12,9 +13,11 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+
 /**
- * 类似螺纹的加载view<br>
- * 可以自定义的属性：颜色、旋转速度（X弧度/s）<br>
+ * Thread-like loading view<br>
+ * Customizable attributes: color, rotation speed (X radians/s）<br>
  */
 public class WhorlView extends View {
     private static final String COLOR_SPLIT = "_";
@@ -29,18 +32,18 @@ public class WhorlView extends View {
 
     private static final long REFRESH_DURATION = 16L;
 
-    //当前动画时间
+    // Current animation time
     private long mCircleTime;
-    //每层颜色
+    // Color of each layer
     private int[] mLayerColors;
-    //旋转速度
-    private int mCircleSpeed;
-    //视差差速
+    // spinning speed
+    private final int mCircleSpeed;
+    // Parallax differential
     private int mParallaxSpeed;
-    //弧长
-    private float mSweepAngle;
-    //弧宽
-    private float mStrokeWidth;
+    // Arc length
+    private final float mSweepAngle;
+    // Arc width
+    private final float mStrokeWidth;
 
     public WhorlView(Context context) {
         this(context, null, 0);
@@ -52,13 +55,13 @@ public class WhorlView extends View {
 
     public WhorlView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        //默认外层最慢270度/s
+        // The default outer layer is the slowest 270 degrees/s
         final int defaultCircleSpeed = 270;
         final float defaultSweepAngle = 90f;
         final float defaultStrokeWidth = 5f;
         final String defaultColors = "#F44336_#4CAF50_#5677fc";
         if (attrs != null) {
-            final TypedArray typedArray = context.obtainStyledAttributes(
+            @SuppressLint("CustomViewStyleable") final TypedArray typedArray = context.obtainStyledAttributes(
                     attrs, R.styleable.whorlview_style);
             String colors = typedArray.getString(R.styleable.whorlview_style_whorlview_circle_colors);
             if (TextUtils.isEmpty(colors)) {
@@ -84,11 +87,11 @@ public class WhorlView extends View {
     }
 
     /**
-     * string类型的颜色分割并转换为色值
+     * string Type of color segmentation and convert to color value
      *
-     * @param colors
+     * @param colors Colors
      */
-    private void parseStringToLayerColors(String colors) {
+    private void parseStringToLayerColors(@NonNull String colors) {
         String[] colorArray = colors.split(COLOR_SPLIT);
         mLayerColors = new int[colorArray.length];
         for (int i = 0; i < colorArray.length; i++) {
@@ -132,19 +135,15 @@ public class WhorlView extends View {
      */
     public void start() {
         mIsCircling = true;
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                mCircleTime = 0L;
-                while (mIsCircling) {
-                    invalidateWrap();
-                    mCircleTime = mCircleTime + REFRESH_DURATION;
-                    try {
-                        Thread.sleep(REFRESH_DURATION);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+        new Thread(() -> {
+            mCircleTime = 0L;
+            while (mIsCircling) {
+                invalidateWrap();
+                mCircleTime = mCircleTime + REFRESH_DURATION;
+                try {
+                    Thread.sleep(REFRESH_DURATION);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
@@ -154,10 +153,6 @@ public class WhorlView extends View {
         mIsCircling = false;
         mCircleTime = 0L;
         invalidateWrap();
-    }
-
-    public boolean isCircling() {
-        return mIsCircling;
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -170,15 +165,15 @@ public class WhorlView extends View {
     }
 
     /**
-     * 画弧
+     * Draw an arc
      *
-     * @param canvas
-     * @param index      由内而外
-     * @param startAngle
+     * @param canvas        Same as name
+     * @param index         From the inside out
+     * @param startAngle    Same as name
      */
     private void drawArc(Canvas canvas, int index, float startAngle) {
         Paint paint = checkArcPaint(index);
-        //最大圆是view的边界
+        // The largest circle is the boundary of the view
         RectF oval = checkRectF(index);
         canvas.drawArc(oval, startAngle, mSweepAngle, false, paint);
     }
@@ -226,32 +221,32 @@ public class WhorlView extends View {
     }
 
     /**
-     * 计算间隔大小
+     * Calculation interval size
      *
-     * @param size
+     * @param size Same as name
      */
     private void calculateIntervalWidth(int size) {
-        float wantIntervalWidth = (size / (mLayerColors.length * 2)) - mStrokeWidth;
-        //防止间隔太大，最大为弧宽的3倍
+        float wantIntervalWidth = (float) (size / (mLayerColors.length * 2)) - mStrokeWidth;
+        // To prevent the interval from being too large, the maximum is 3 times the arc width
         float maxIntervalWidth = mStrokeWidth * 4;
         mIntervalWidth = Math.min(wantIntervalWidth, maxIntervalWidth);
     }
 
     /**
-     * 测量view的宽高
+     * Measure the width and height of the view
      *
-     * @param measureSpec
-     * @param wantSize
-     * @param minSize
-     * @return
+     * @param measureSpec   Same as name
+     * @param wantSize      Same as name
+     * @param minSize       Same as name
+     * @return              Pending description
      */
     public static int measureSize(int measureSpec, int wantSize, int minSize) {
-        int result = 0;
+        int result; // Initial value is always 0
         int specMode = MeasureSpec.getMode(measureSpec);
         int specSize = MeasureSpec.getSize(measureSpec);
 
         if (specMode == MeasureSpec.EXACTLY) {
-            // 父布局想要view的大小
+            // The size of the view that the parent layout wants
             result = specSize;
         } else {
             result = wantSize;
@@ -260,7 +255,7 @@ public class WhorlView extends View {
                 result = Math.min(result, specSize);
             }
         }
-        //测量的尺寸和最小尺寸取大
+        // The measured size and the minimum size, whichever is greater
         return Math.max(result, minSize);
     }
 }
